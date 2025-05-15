@@ -1,42 +1,38 @@
 pipeline {
     agent any
 
+    environment {
+        VENV = "venv"
+    }
+
     stages {
-        stage('Setup Python') {
+        stage('Checkout') {
             steps {
-                bat 'python --version'
-                bat 'python -m venv venv'
-                bat 'call venv\\Scripts\\activate.bat && python -m pip install --upgrade pip'
+                git 'https://github.com/savitskiy1995/python-qa-training.git'
             }
         }
 
-        stage('Install dependencies') {
+        stage('Setup Python') {
             steps {
-                bat '''
-                    call venv\\Scripts\\activate.bat && ^
-                    pip install pytest pytest-html && ^
-                    pip install -r requirements.txt
-                '''
+                sh 'python3 -m venv $VENV'
+                sh './$VENV/bin/pip install --upgrade pip'
+                // Если есть requirements.txt — ставим зависимости, если нет — эта команда ничего не сломает
+                sh './$VENV/bin/pip install -r requirements.txt || true'
+                // Обязательно ставим pytest и плагин для html отчёта
+                sh './$VENV/bin/pip install pytest pytest-html'
             }
         }
 
         stage('Run Tests') {
             steps {
-                bat '''
-                    call venv\\Scripts\\activate.bat && ^
-                    python -m pytest test/ --junitxml=test-results.xml --html=report.html --self-contained-html
-                '''
+                // Запускаем тесты и создаём html отчёт
+                sh './$VENV/bin/pytest test --html=report.html --self-contained-html'
             }
         }
 
-        stage('Publish Reports') {
+        stage('Archive Report') {
             steps {
-                junit 'test-results.xml'
-                publishHTML(target: [
-                    reportDir: '.',    // текущая директория
-                    reportFiles: 'report.html',
-                    reportName: 'Pytest HTML Report'
-                ])
+                archiveArtifacts artifacts: 'report.html', allowEmptyArchive: false
             }
         }
     }
