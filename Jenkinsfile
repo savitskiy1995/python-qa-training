@@ -2,24 +2,30 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout') {
-            steps {
-                git url: 'https://github.com/savitskiy1995/python-qa-training.git', branch: 'main'
-            }
-        }
-
-        stage('Set up Python') {
+        stage('Setup Python') {
             steps {
                 bat 'python --version'
                 bat 'python -m venv venv'
-                bat 'call venv\\Scripts\\activate && pip install -r requirements.txt'
-                bat 'call venv\\Scripts\\activate && pip install pytest pytest-html pytest-junitxml'
+                bat 'call venv\\Scripts\\activate && python -m pip install --upgrade pip'
+            }
+        }
+
+        stage('Install dependencies') {
+            steps {
+                bat '''
+                call venv\\Scripts\\activate && 
+                pip install pytest pytest-html junitxml && 
+                pip install -r requirements.txt
+                '''
             }
         }
 
         stage('Run Tests') {
             steps {
-                bat 'call venv\\Scripts\\activate && python -m pytest --junitxml=test-results.xml --html=report.html'
+                bat '''
+                call venv\\Scripts\\activate && 
+                python -m pytest test/ --junitxml=test-results.xml --html=report.html
+                '''
             }
         }
 
@@ -29,7 +35,7 @@ pipeline {
                 publishHTML(target: [
                     reportDir: '',
                     reportFiles: 'report.html',
-                    reportName: 'Pytest Report'
+                    reportName: 'Pytest HTML Report'
                 ])
             }
         }
