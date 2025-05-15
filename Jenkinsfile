@@ -6,16 +6,16 @@ pipeline {
             steps {
                 bat 'python --version'
                 bat 'python -m venv venv'
-                bat 'call venv\\Scripts\\activate && python -m pip install --upgrade pip'
+                bat 'call venv\\Scripts\\activate.bat && python -m pip install --upgrade pip'
             }
         }
 
         stage('Install dependencies') {
             steps {
                 bat '''
-                call venv\\Scripts\\activate && 
-                pip install pytest pytest-html junitxml && 
-                pip install -r requirements.txt
+                    call venv\\Scripts\\activate.bat && ^
+                    pip install pytest pytest-html && ^
+                    pip install -r requirements.txt
                 '''
             }
         }
@@ -23,8 +23,8 @@ pipeline {
         stage('Run Tests') {
             steps {
                 bat '''
-                call venv\\Scripts\\activate && 
-                python -m pytest test/ --junitxml=test-results.xml --html=report.html
+                    call venv\\Scripts\\activate.bat && ^
+                    python -m pytest test/ --junitxml=test-results.xml --html=report.html --self-contained-html
                 '''
             }
         }
@@ -33,7 +33,7 @@ pipeline {
             steps {
                 junit 'test-results.xml'
                 publishHTML(target: [
-                    reportDir: '',
+                    reportDir: '.',    // текущая директория
                     reportFiles: 'report.html',
                     reportName: 'Pytest HTML Report'
                 ])
